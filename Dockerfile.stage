@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-dev.txt ./
+
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+
+# Use the following command to build the Docker image:
+# docker build -t devot_challenge:latest -f Dockerfile.stage .
+
+# Use the following command to run the Docker container with volume mapping:
+# docker run -v ${PWD}:/app -p 8000:8000 devot_challenge:latest
