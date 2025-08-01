@@ -2,15 +2,21 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+RUN mkdir -p data
+
+COPY requirements.txt ./
 COPY requirements-dev.txt ./
 
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 
+ENV PYTHONPATH=/app
+ENV ENVIRONMENT=development
+
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "run.py"]
 
 # Use the following command to build the Docker image:
 # docker build -t devot_challenge:latest -f Dockerfile.stage .
