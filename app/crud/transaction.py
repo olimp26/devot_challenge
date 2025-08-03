@@ -37,7 +37,7 @@ def get_transactions_for_user(
     db: Session,
     user_id: int,
     offset: int = 0,
-    limit: int = 100,
+    limit: Optional[int] = 100,
     category_id: Optional[int] = None,
     min_amount: Optional[Decimal] = None,
     max_amount: Optional[Decimal] = None,
@@ -76,14 +76,17 @@ def get_transactions_for_user(
         query = query.filter(
             Transaction.description.ilike(f"%{description_query}%"))
 
-    # Apply sorting
     sort_column = getattr(Transaction, sort_by, Transaction.date)
     if order.lower() == "asc":
         query = query.order_by(asc(sort_column))
     else:
         query = query.order_by(desc(sort_column))
 
-    return query.offset(offset).limit(limit).all()
+    query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+
+    return query.all()
 
 
 def create_transaction(db: Session, transaction: TransactionCreate, user_id: int) -> Optional[Transaction]:

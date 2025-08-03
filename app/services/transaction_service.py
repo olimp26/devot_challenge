@@ -69,6 +69,29 @@ class TransactionService:
             user_id=user_id
         )
 
+    def get_all_user_transactions_for_summary(
+        self,
+        user_id: int,
+        category_id: Optional[int] = None,
+        from_date: Optional[date] = None,
+        to_date: Optional[date] = None
+    ) -> List[Transaction]:
+        return get_transactions_for_user(
+            db=self.db,
+            user_id=user_id,
+            offset=0,
+            limit=None,  # No limit for summary calculations
+            category_id=category_id,
+            min_amount=None,
+            max_amount=None,
+            from_date=from_date,
+            to_date=to_date,
+            category_type=None,
+            description_query=None,
+            sort_by="date",
+            order="desc"
+        )
+
     def update_user_transaction(
         self,
         transaction_id: int,

@@ -5,6 +5,7 @@ from app.core.deps import get_db
 from app.services.transaction_service import TransactionService
 from app.services.category_service import CategoryService
 from app.services.auth_service import AuthService
+from app.services.summary_service import SummaryService
 
 
 def get_category_service(db: Session = Depends(get_db)) -> CategoryService:
@@ -23,3 +24,9 @@ def get_auth_service(
     transaction_service: TransactionService = Depends(get_transaction_service)
 ) -> AuthService:
     return AuthService(db, transaction_service)
+
+
+def get_summary_service(
+    transaction_service: TransactionService = Depends(get_transaction_service)
+) -> SummaryService:
+    return SummaryService(transaction_service)
