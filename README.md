@@ -54,26 +54,6 @@ Once running, visit:
 - **Interactive API docs**: http://localhost:8000/docs
 - **Alternative docs**: http://localhost:8000/redoc
 
-## API Endpoints
-
-### Authentication
-
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - User login (TODO)
-- `GET /auth/me` - Get current user (TODO)
-
-### Example Registration Request
-
-```bash
-curl -X POST "http://localhost:8000/auth/register" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "email": "user@example.com",
-       "password": "securepassword123",
-       "full_name": "John Doe"
-     }'
-```
-
 ## Database Migrations
 
 This project uses Alembic for database schema management. The initial migration is already included in the repository.
