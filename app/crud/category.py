@@ -81,3 +81,17 @@ def get_categories_by_type(db: Session, category_type: str, user_id: Optional[in
         return base_query.filter(
             or_(Category.user_id.is_(None), Category.user_id == user_id)
         ).all()
+
+
+def get_category_by_name(db: Session, name: str, user_id: Optional[int] = None) -> Optional[Category]:
+    if user_id is None:
+        return db.query(Category).filter(
+            and_(Category.name == name, Category.user_id.is_(None))
+        ).first()
+    else:
+        return db.query(Category).filter(
+            and_(
+                Category.name == name,
+                or_(Category.user_id.is_(None), Category.user_id == user_id)
+            )
+        ).first()

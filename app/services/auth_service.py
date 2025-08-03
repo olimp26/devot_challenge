@@ -12,8 +12,9 @@ from app.schemas.user import UserCreate
 class AuthService:
     """Service class for authentication-related business logic."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, transaction_service=None):
         self.db = db
+        self.transaction_service = transaction_service
 
     def authenticate_user_credentials(
         self,
@@ -39,7 +40,13 @@ class AuthService:
         self,
         user_data: UserCreate
     ) -> User:
-        return create_user(
+        created_user = create_user(
             db=self.db,
             user_in=user_data
         )
+
+        if self.transaction_service:
+            self.transaction_service.create_initial_transaction(
+                created_user.id)
+
+        return created_user

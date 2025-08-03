@@ -10,7 +10,8 @@ from app.crud.category import (
     create_category,
     update_category,
     delete_category,
-    get_categories_by_type
+    get_categories_by_type,
+    get_category_by_name
 )
 from app.models.category import Category, CategoryType
 from app.schemas.category import CategoryCreate, CategoryUpdate
@@ -82,5 +83,16 @@ class CategoryService:
         return delete_category(
             db=self.db,
             category_id=category_id,
+            user_id=user_id
+        )
+
+    def get_category_by_name(
+        self,
+        name: str,
+        user_id: Optional[int] = None
+    ) -> Optional[Category]:
+        return get_category_by_name(
+            db=self.db,
+            name=name,
             user_id=user_id
         )

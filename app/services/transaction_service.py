@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from datetime import date
 
 from app.crud.transaction import (
     get_transactions_for_user,
@@ -15,13 +16,15 @@ from app.schemas.transaction import (
     TransactionUpdate,
     TransactionQueryParams
 )
+from app.core.config import get_settings
 
 
 class TransactionService:
     """Service class for transaction-related business logic."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, category_service=None):
         self.db = db
+        self.category_service = category_service
 
     def get_user_transactions(
         self,
@@ -89,3 +92,30 @@ class TransactionService:
             transaction_id=transaction_id,
             user_id=user_id
         )
+
+    def create_initial_transaction(self, user_id: int) -> Optional[Transaction]:
+        settings = get_settings()
+
+        if not self.category_service:
+            return None
+
+        other_income_category = self.category_service.get_category_by_name(
+            name="Other Income",
+            user_id=None
+        )
+
+        if other_income_category:
+            initial_transaction = TransactionCreate(
+                category_id=other_income_category.id,
+                description="Predefined amount of money on account",
+                amount=settings.initial_transaction_amount,
+                date=date.today()
+            )
+
+            return create_transaction(
+                db=self.db,
+                transaction=initial_transaction,
+                user_id=user_id
+            )
+
+        return None
