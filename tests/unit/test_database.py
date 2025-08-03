@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.security import get_password_hash
+from app.crud.user import get_user_by_email
 from app.models.user import User
-from app.crud.user import get_user_by_email, create_user
-from app.schemas.user import UserCreate
 
 
 class TestDatabaseConnection:
@@ -23,8 +23,6 @@ class TestDatabaseConnection:
 
     def test_database_transaction_rollback(self, db_session):
         """Test database transaction rollback functionality."""
-        from app.models.user import User
-        from app.core.security import get_password_hash
 
         # Create user without using CRUD function (to avoid auto-commit)
         hashed_password = get_password_hash("password123")

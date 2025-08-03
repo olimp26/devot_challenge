@@ -1,20 +1,41 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.crud.user import create_user, get_user_by_email
+from app.core.config import get_settings
+from app.core.security import create_access_token
+from app.crud.user import authenticate_user, create_user, get_user_by_email
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserResponse
+from app.models.user import User
+from app.schemas.user import Token, UserCreate, UserResponse
+
+settings = get_settings()
 router = APIRouter()
 
 
-@router.post("/login")
-def login():
-    # TODO: Implement authentication endpoint
-    raise HTTPException(
-        status_code=501, detail="Login not implemented yet")
+@router.post("/token", response_model=Token, summary="Login with email and password")
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    email = form_data.username
+    password = form_data.password
+
+    user = authenticate_user(db, email, password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(subject=user.email)
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse, summary="Register new user with email, password and optional full name")
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(db, user_in.email)
     if existing_user:

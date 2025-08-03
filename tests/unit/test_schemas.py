@@ -1,8 +1,9 @@
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
 
-from app.schemas.user import UserCreate, UserLogin, UserResponse
+from app.schemas.user import UserCreate, UserResponse
 
 
 class TestUserSchemas:
@@ -42,17 +43,6 @@ class TestUserSchemas:
             UserCreate(**data)
 
         assert "Field required" in str(exc_info.value)
-
-    def test_user_login_valid(self):
-        """Test UserLogin with valid data."""
-        data = {
-            "email": "login@example.com",
-            "password": "loginpassword"
-        }
-        user_login = UserLogin(**data)
-
-        assert user_login.email == "login@example.com"
-        assert user_login.password == "loginpassword"
 
     def test_user_response_with_datetime(self):
         """Test UserResponse with datetime field."""
