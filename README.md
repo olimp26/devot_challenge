@@ -12,7 +12,7 @@ A FastAPI-based web application with user authentication and SQLite database.
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/olimp26/devot_challenge.git
 cd devot_challenge
 ```
 
