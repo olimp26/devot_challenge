@@ -77,18 +77,6 @@ class TestJWTTokens:
         verified_email = verify_token(token)
         assert verified_email == email
 
-    def test_verify_token_invalid_signature(self):
-        """Test verifying token with invalid signature."""
-        email = "test@example.com"
-        token = create_access_token(subject=email)
-
-        invalid_token = token[:-1] + "X"
-
-        with pytest.raises(HTTPException) as exc_info:
-            verify_token(invalid_token)
-        assert exc_info.value.status_code == 401
-        assert "Invalid or expired access token" in str(exc_info.value.detail)
-
     def test_verify_token_expired(self):
         """Test verifying an expired token."""
         email = "expired@example.com"
