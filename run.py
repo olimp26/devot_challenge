@@ -1,25 +1,23 @@
-import logging
-from app.logger import Logger, LogLevels
 import os
-from dotenv import load_dotenv
 import uvicorn
+from dotenv import load_dotenv
+
+from app.core.config import get_settings
+from app.logger.logger import Logger
 
 load_dotenv()
 
-Logger.configure(os.getenv("LOG_LEVEL", LogLevels.INFO))
+settings = get_settings()
+
+Logger.configure(settings.log_level)
 
 os.makedirs("data", exist_ok=True)
 
 if __name__ == "__main__":
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    reload = os.getenv("RELOAD", "true").lower() == "true"
-    access_log = os.getenv("ACCESS_LOG", "true").lower() == "true"
-
     uvicorn.run(
         "app.main:app",
-        host=host,
-        port=port,
-        reload=reload,
-        access_log=access_log
+        host=settings.host,
+        port=settings.port,
+        reload=settings.reload,
+        access_log=True
     )
