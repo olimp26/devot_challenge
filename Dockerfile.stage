@@ -9,6 +9,8 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 
+RUN python -m pytest --maxfail=1 --disable-warnings -q
+
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=development
 
