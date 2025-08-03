@@ -62,3 +62,42 @@ class CategoryExceptions:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own categories."
         )
+
+
+class TransactionExceptions:
+    """Centralized transaction-related exceptions."""
+
+    @staticmethod
+    def transaction_not_found() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found."
+        )
+
+    @staticmethod
+    def transaction_access_denied() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only access your own transactions."
+        )
+
+    @staticmethod
+    def transaction_update_denied() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own transactions."
+        )
+
+    @staticmethod
+    def transaction_delete_denied() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own transactions."
+        )
+
+    @staticmethod
+    def invalid_category() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid category ID."
+        )

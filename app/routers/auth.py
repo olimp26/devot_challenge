@@ -12,7 +12,8 @@ from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserResponse
 
 settings = get_settings()
-router = APIRouter()
+
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/token", response_model=Token, summary="Login with email and password")

@@ -17,3 +17,4 @@ class User(Base):
                         server_default=func.now(), nullable=False)
 
     categories = relationship("Category", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user")

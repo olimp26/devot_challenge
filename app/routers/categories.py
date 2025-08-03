@@ -17,7 +17,7 @@ from app.models.user import User
 from app.models.category import CategoryType
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 @router.get("/", response_model=List[CategoryResponse], summary="Get all accessible categories")
