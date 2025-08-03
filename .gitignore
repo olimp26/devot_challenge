@@ -210,5 +210,6 @@ __marimo__/
 /data
 
 # Alembic
+alembic.ini
 alembic/__pycache__/
 alembic/versions/__pycache__/
