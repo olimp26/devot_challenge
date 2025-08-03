@@ -37,3 +37,28 @@ class UserExceptions:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
+
+
+class CategoryExceptions:
+    """Centralized category-related exceptions."""
+
+    @staticmethod
+    def category_not_found() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found."
+        )
+
+    @staticmethod
+    def category_update_denied() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own categories."
+        )
+
+    @staticmethod
+    def category_delete_denied() -> HTTPException:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own categories."
+        )
