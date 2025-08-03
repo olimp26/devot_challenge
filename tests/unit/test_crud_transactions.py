@@ -246,3 +246,184 @@ class TestTransactionCRUD:
         # Test the new properties
         assert transactions[0].category_name == sample_category.name
         assert transactions[0].category_type == sample_category.category_type.value
+
+
+class TestTransactionFiltering:
+    """Test transaction filtering in CRUD operations."""
+
+    def test_filter_by_amount_range(self, db_session, sample_user, sample_category):
+        """Test filtering transactions by amount range."""
+        # Create transactions with different amounts
+        amounts = ["50.00", "100.00", "150.00", "200.00"]
+        for amount in amounts:
+            transaction_data = create_transaction_schema(
+                sample_category.id, f"Test {amount}", amount)
+            create_transaction(db_session, transaction_data, sample_user.id)
+
+        # Test min_amount filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, min_amount=Decimal("100.00")
+        )
+        assert len(transactions) == 3  # 100, 150, 200
+        assert all(t.amount >= Decimal("100.00") for t in transactions)
+
+        # Test max_amount filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, max_amount=Decimal("150.00")
+        )
+        assert len(transactions) == 3  # 50, 100, 150
+        assert all(t.amount <= Decimal("150.00") for t in transactions)
+
+        # Test both min and max amount
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id,
+            min_amount=Decimal("100.00"),
+            max_amount=Decimal("150.00")
+        )
+        assert len(transactions) == 2  # 100, 150
+        assert all(Decimal("100.00") <= t.amount <= Decimal("150.00")
+                   for t in transactions)
+
+    def test_filter_by_date_range(self, db_session, sample_user, sample_category):
+        """Test filtering transactions by date range."""
+        # Create transactions with different dates
+        dates = [
+            date(2025, 8, 1),
+            date(2025, 8, 5),
+            date(2025, 8, 10),
+            date(2025, 8, 15)
+        ]
+        for test_date in dates:
+            transaction_data = create_transaction_schema(
+                sample_category.id, f"Test {test_date}", "100.00"
+            )
+            transaction_data.date = test_date
+            create_transaction(db_session, transaction_data, sample_user.id)
+
+        # Test from_date filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, from_date=date(2025, 8, 5)
+        )
+        assert len(transactions) == 3  # 05, 10, 15
+        assert all(t.date >= date(2025, 8, 5) for t in transactions)
+
+        # Test to_date filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, to_date=date(2025, 8, 10)
+        )
+        assert len(transactions) == 3  # 01, 05, 10
+        assert all(t.date <= date(2025, 8, 10) for t in transactions)
+
+        # Test both from and to date
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id,
+            from_date=date(2025, 8, 5),
+            to_date=date(2025, 8, 10)
+        )
+        assert len(transactions) == 2  # 05, 10
+        assert all(date(2025, 8, 5) <= t.date <= date(2025, 8, 10)
+                   for t in transactions)
+
+    def test_filter_by_category_type(self, db_session, sample_user):
+        """Test filtering transactions by category type."""
+        from app.models.category import Category, CategoryType
+
+        # Create income and expense categories
+        income_category = Category(
+            name="Salary", category_type=CategoryType.income, user_id=sample_user.id
+        )
+        expense_category = Category(
+            name="Food", category_type=CategoryType.expense, user_id=sample_user.id
+        )
+        db_session.add_all([income_category, expense_category])
+        db_session.commit()
+
+        # Create transactions for both types
+        income_data = create_transaction_schema(
+            income_category.id, "Salary payment", "2000.00")
+        expense_data = create_transaction_schema(
+            expense_category.id, "Grocery shopping", "150.00")
+
+        create_transaction(db_session, income_data, sample_user.id)
+        create_transaction(db_session, expense_data, sample_user.id)
+
+        # Test income filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, category_type=CategoryType.income
+        )
+        assert len(transactions) == 1
+        assert transactions[0].category.category_type == CategoryType.income
+
+        # Test expense filter
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, category_type=CategoryType.expense
+        )
+        assert len(transactions) == 1
+        assert transactions[0].category.category_type == CategoryType.expense
+
+    def test_filter_by_description_search(self, db_session, sample_user, sample_category):
+        """Test filtering transactions by description search."""
+        # Create transactions with different descriptions
+        descriptions = ["Rent payment", "Grocery store",
+                        "Gas station", "Rent insurance"]
+        for desc in descriptions:
+            transaction_data = create_transaction_schema(
+                sample_category.id, desc, "100.00")
+            create_transaction(db_session, transaction_data, sample_user.id)
+
+        # Test description search - should find both "Rent payment" and "Rent insurance"
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, description_query="rent"
+        )
+        assert len(transactions) == 2
+        assert all("rent" in t.description.lower() for t in transactions)
+
+        # Test case-insensitive search
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, description_query="GROCERY"
+        )
+        assert len(transactions) == 1
+        assert "grocery" in transactions[0].description.lower()
+
+    def test_sorting_functionality(self, db_session, sample_user, sample_category):
+        """Test sorting transactions by different fields."""
+        # Create transactions with different amounts and dates
+        transactions_data = [
+            ("First transaction", "50.00", date(2025, 8, 3)),
+            ("Second transaction", "200.00", date(2025, 8, 1)),
+            ("Third transaction", "100.00", date(2025, 8, 2))
+        ]
+
+        for desc, amount, test_date in transactions_data:
+            transaction_data = create_transaction_schema(
+                sample_category.id, desc, amount)
+            transaction_data.date = test_date
+            create_transaction(db_session, transaction_data, sample_user.id)
+
+        # Test sort by amount ascending
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, sort_by="amount", order="asc"
+        )
+        amounts = [t.amount for t in transactions]
+        assert amounts == sorted(amounts)
+
+        # Test sort by amount descending
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, sort_by="amount", order="desc"
+        )
+        amounts = [t.amount for t in transactions]
+        assert amounts == sorted(amounts, reverse=True)
+
+        # Test sort by date ascending
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, sort_by="date", order="asc"
+        )
+        dates = [t.date for t in transactions]
+        assert dates == sorted(dates)
+
+        # Test sort by description
+        transactions = get_transactions_for_user(
+            db_session, sample_user.id, sort_by="description", order="asc"
+        )
+        descriptions = [t.description for t in transactions]
+        assert descriptions == sorted(descriptions)

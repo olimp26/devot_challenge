@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
@@ -15,7 +15,8 @@ from app.models.user import User
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionUpdate,
-    TransactionResponse
+    TransactionResponse,
+    TransactionQueryParams
 )
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -23,20 +24,24 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 @router.get("/", response_model=List[TransactionResponse])
 def get_transactions(
-    skip: int = Query(0, ge=0, description="Number of transactions to skip"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of transactions to return"),
-    category_id: Optional[int] = Query(
-        None, description="Filter by category ID"),
+    params: TransactionQueryParams = Depends(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     transactions = get_transactions_for_user(
         db=db,
         user_id=current_user.id,
-        offset=skip,
-        limit=limit,
-        category_id=category_id
+        offset=params.offset,
+        limit=params.limit,
+        category_id=params.category_id,
+        min_amount=params.min_amount,
+        max_amount=params.max_amount,
+        from_date=params.from_date,
+        to_date=params.to_date,
+        category_type=params.category_type,
+        description_query=params.description_query,
+        sort_by=params.sort_by,
+        order=params.order
     )
     return transactions
 

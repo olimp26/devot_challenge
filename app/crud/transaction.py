@@ -1,9 +1,11 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_
+from sqlalchemy import and_, desc, asc
+from decimal import Decimal
+from datetime import date
 
 from app.models.transaction import Transaction
-from app.models.category import Category
+from app.models.category import Category, CategoryType
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
 
 
@@ -36,7 +38,15 @@ def get_transactions_for_user(
     user_id: int,
     offset: int = 0,
     limit: int = 100,
-    category_id: Optional[int] = None
+    category_id: Optional[int] = None,
+    min_amount: Optional[Decimal] = None,
+    max_amount: Optional[Decimal] = None,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    category_type: Optional[CategoryType] = None,
+    description_query: Optional[str] = None,
+    sort_by: str = "date",
+    order: str = "desc"
 ) -> List[Transaction]:
 
     query = db.query(Transaction).options(
@@ -46,12 +56,37 @@ def get_transactions_for_user(
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
 
+    if min_amount is not None:
+        query = query.filter(Transaction.amount >= min_amount)
+
+    if max_amount is not None:
+        query = query.filter(Transaction.amount <= max_amount)
+
+    if from_date:
+        query = query.filter(Transaction.date >= from_date)
+
+    if to_date:
+        query = query.filter(Transaction.date <= to_date)
+
+    if category_type:
+        query = query.join(Category).filter(
+            Category.category_type == category_type)
+
+    if description_query:
+        query = query.filter(
+            Transaction.description.ilike(f"%{description_query}%"))
+
+    # Apply sorting
+    sort_column = getattr(Transaction, sort_by, Transaction.date)
+    if order.lower() == "asc":
+        query = query.order_by(asc(sort_column))
+    else:
+        query = query.order_by(desc(sort_column))
+
     return query.offset(offset).limit(limit).all()
 
 
 def create_transaction(db: Session, transaction: TransactionCreate, user_id: int) -> Optional[Transaction]:
-    """Create a new transaction for the authenticated user."""
-    
     category = _validate_category_access(db, transaction.category_id, user_id)
     if not category:
         return None

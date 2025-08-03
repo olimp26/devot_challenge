@@ -259,3 +259,272 @@ class TestTransactionEndpoints:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestTransactionFilters:
+    """Test transaction filtering functionality."""
+
+    def test_filter_by_amount_range(self, client, sample_user_data):
+        """Test filtering transactions by amount range."""
+        token = authenticate_user(client, sample_user_data)
+        category_id = create_test_category(client, token)
+
+        # Create transactions with different amounts
+        amounts = ["50.00", "100.00", "150.00", "200.00"]
+        for i, amount in enumerate(amounts):
+            transaction_data = create_test_transaction_data(
+                category_id, f"Transaction {i+1}", amount
+            )
+            client.post(
+                "/transactions/",
+                json=transaction_data,
+                headers={"Authorization": f"Bearer {token}"}
+            )
+
+        # Test min_amount filter
+        response = client.get(
+            "/transactions/?min_amount=100",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 3  # 100, 150, 200
+        assert all(float(t["amount"]) >= 100 for t in transactions)
+
+        # Test max_amount filter
+        response = client.get(
+            "/transactions/?max_amount=150",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 3  # 50, 100, 150
+        assert all(float(t["amount"]) <= 150 for t in transactions)
+
+        # Test both min and max amount
+        response = client.get(
+            "/transactions/?min_amount=100&max_amount=150",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 2  # 100, 150
+        assert all(100 <= float(t["amount"]) <= 150 for t in transactions)
+
+    def test_filter_by_date_range(self, client, sample_user_data):
+        """Test filtering transactions by date range."""
+        token = authenticate_user(client, sample_user_data)
+        category_id = create_test_category(client, token)
+
+        # Create transactions with different dates
+        dates = ["2025-08-01", "2025-08-05", "2025-08-10", "2025-08-15"]
+        for i, date_str in enumerate(dates):
+            transaction_data = create_test_transaction_data(
+                category_id, f"Transaction {i+1}", "100.00", date_str
+            )
+            client.post(
+                "/transactions/",
+                json=transaction_data,
+                headers={"Authorization": f"Bearer {token}"}
+            )
+
+        # Test from date filter
+        response = client.get(
+            "/transactions/?from_date=2025-08-05",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 3  # 05, 10, 15
+        assert all(t["date"] >= "2025-08-05" for t in transactions)
+
+        # Test to date filter
+        response = client.get(
+            "/transactions/?to_date=2025-08-10",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 3  # 01, 05, 10
+        assert all(t["date"] <= "2025-08-10" for t in transactions)
+
+        # Test both from and to date
+        response = client.get(
+            "/transactions/?from_date=2025-08-05&to_date=2025-08-10",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 2  # 05, 10
+        assert all("2025-08-05" <= t["date"] <=
+                   "2025-08-10" for t in transactions)
+
+    def test_filter_by_transaction_type(self, client, sample_user_data):
+        """Test filtering transactions by type (income/expense)."""
+        token = authenticate_user(client, sample_user_data)
+
+        # Create income and expense categories
+        income_category_id = create_test_category(
+            client, token, "Salary", "income")
+        expense_category_id = create_test_category(
+            client, token, "Food", "expense")
+
+        # Create transactions for both types
+        income_data = create_test_transaction_data(
+            income_category_id, "Salary payment", "2000.00")
+        expense_data = create_test_transaction_data(
+            expense_category_id, "Grocery shopping", "150.00")
+
+        client.post("/transactions/", json=income_data,
+                    headers={"Authorization": f"Bearer {token}"})
+        client.post("/transactions/", json=expense_data,
+                    headers={"Authorization": f"Bearer {token}"})
+
+        # Test income filter
+        response = client.get(
+            "/transactions/?category_type=income",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 1
+        assert transactions[0]["category_type"] == "income"
+
+        # Test expense filter
+        response = client.get(
+            "/transactions/?category_type=expense",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 1
+        assert transactions[0]["category_type"] == "expense"
+
+    def test_filter_by_description_search(self, client, sample_user_data):
+        """Test filtering transactions by description search."""
+        token = authenticate_user(client, sample_user_data)
+        category_id = create_test_category(client, token)
+
+        # Create transactions with different descriptions
+        descriptions = ["Rent payment", "Grocery store",
+                        "Gas station", "Rent insurance"]
+        for desc in descriptions:
+            transaction_data = create_test_transaction_data(
+                category_id, desc, "100.00")
+            client.post("/transactions/", json=transaction_data,
+                        headers={"Authorization": f"Bearer {token}"})
+
+        # Test description search - should find both "Rent payment" and "Rent insurance"
+        response = client.get(
+            "/transactions/?description_query=rent",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 2
+        assert all("rent" in t["description"].lower() for t in transactions)
+
+        # Test case-insensitive search
+        response = client.get(
+            "/transactions/?description_query=GROCERY",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 1
+        assert "grocery" in transactions[0]["description"].lower()
+
+    def test_sorting_functionality(self, client, sample_user_data):
+        """Test sorting transactions by different fields."""
+        token = authenticate_user(client, sample_user_data)
+        category_id = create_test_category(client, token)
+
+        # Create transactions with different amounts and dates
+        transactions_data = [
+            ("First transaction", "50.00", "2025-08-01"),
+            ("Second transaction", "200.00", "2025-08-02"),
+            ("Third transaction", "100.00", "2025-08-03")
+        ]
+
+        for desc, amount, date_str in transactions_data:
+            transaction_data = create_test_transaction_data(
+                category_id, desc, amount, date_str)
+            client.post("/transactions/", json=transaction_data,
+                        headers={"Authorization": f"Bearer {token}"})
+
+        # Test sort by amount ascending
+        response = client.get(
+            "/transactions/?sort_by=amount&order=asc",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        amounts = [float(t["amount"]) for t in transactions]
+        assert amounts == sorted(amounts)
+
+        # Test sort by amount descending
+        response = client.get(
+            "/transactions/?sort_by=amount&order=desc",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        amounts = [float(t["amount"]) for t in transactions]
+        assert amounts == sorted(amounts, reverse=True)
+
+        # Test sort by date ascending
+        response = client.get(
+            "/transactions/?sort_by=date&order=asc",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        dates = [t["date"] for t in transactions]
+        assert dates == sorted(dates)
+
+        # Test sort by description
+        response = client.get(
+            "/transactions/?sort_by=description&order=asc",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        descriptions = [t["description"] for t in transactions]
+        assert descriptions == sorted(descriptions)
+
+    def test_combined_filters(self, client, sample_user_data):
+        """Test using multiple filters together."""
+        token = authenticate_user(client, sample_user_data)
+
+        # Create different categories
+        income_category_id = create_test_category(
+            client, token, "Salary", "income")
+        expense_category_id = create_test_category(
+            client, token, "Food", "expense")
+
+        # Create various transactions
+        transactions_data = [
+            (income_category_id, "Monthly salary", "3000.00", "2025-08-01"),
+            (expense_category_id, "Grocery shopping", "150.00", "2025-08-02"),
+            (expense_category_id, "Restaurant dinner", "80.00", "2025-08-03"),
+            (income_category_id, "Freelance work", "500.00", "2025-08-04"),
+            (expense_category_id, "Gas station", "60.00", "2025-08-05")
+        ]
+
+        for cat_id, desc, amount, date_str in transactions_data:
+            transaction_data = create_test_transaction_data(
+                cat_id, desc, amount, date_str)
+            client.post("/transactions/", json=transaction_data,
+                        headers={"Authorization": f"Bearer {token}"})
+
+        # Test combined filters: expense type + amount range + date range + description search
+        response = client.get(
+            "/transactions/?category_type=expense&min_amount=70&max_amount=200&from_date=2025-08-02&to_date=2025-08-04&description_query=shop&sort_by=amount&order=desc",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        transactions = response.json()
+        assert len(transactions) == 1
+        assert transactions[0]["description"] == "Grocery shopping"
+        assert transactions[0]["category_type"] == "expense"
+        assert float(transactions[0]["amount"]) == 150.00
