@@ -1,10 +1,9 @@
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.deps import get_current_user
 from app.core.security import create_access_token
 from app.crud.user import authenticate_user, create_user, get_user_by_email
 from app.db.session import get_db
@@ -47,8 +46,6 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
-@router.get("/me")
-def get_current_user():
-    # TODO: Implement get current user endpoint
-    raise HTTPException(
-        status_code=501, detail="Get current user not implemented yet")
+@router.get("/me", response_model=UserResponse, summary="Get current user information")
+def get_current_user_info(current_user: User = Depends(get_current_user)) -> UserResponse:
+    return current_user
