@@ -1,15 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_current_user
 from app.core.exceptions import AuthExceptions, UserExceptions
 from app.core.security import create_access_token
-from app.crud.user import authenticate_user, create_user, get_user_by_email
-from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserResponse
+from app.services.deps import get_auth_service
+from app.services.auth_service import AuthService
 
 settings = get_settings()
 
@@ -19,12 +18,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/token", response_model=Token, summary="Login with email and password")
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     email = form_data.username
     password = form_data.password
 
-    user = authenticate_user(db, email, password)
+    user = auth_service.authenticate_user_credentials(email, password)
     if not user:
         raise AuthExceptions.invalid_credentials()
 
@@ -33,11 +32,14 @@ def login_for_access_token(
 
 
 @router.post("/register", response_model=UserResponse, summary="Register new user with email, password and optional full name")
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing_user = get_user_by_email(db, user_in.email)
+def register(
+    user_in: UserCreate,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    existing_user = auth_service.get_user_by_email(user_in.email)
     if existing_user:
         raise UserExceptions.email_already_registered()
-    user = create_user(db, user_in)
+    user = auth_service.create_new_user(user_in)
     return user
 
 
