@@ -2,8 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN mkdir -p data
-
 COPY requirements.txt ./
 COPY requirements-dev.txt ./
 
@@ -17,9 +15,3 @@ ENV ENVIRONMENT=development
 EXPOSE 8000
 
 CMD ["python", "run.py"]
-
-# Use the following command to build the Docker image:
-# docker build -t devot_challenge:latest -f Dockerfile.stage .
-
-# Use the following command to run the Docker container with volume mapping:
-# docker run -v ${PWD}:/app -p 8000:8000 devot_challenge:latest

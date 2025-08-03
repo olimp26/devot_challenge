@@ -208,3 +208,7 @@ __marimo__/
 
 # Data directory
 /data
+
+# Alembic
+alembic/__pycache__/
+alembic/versions/__pycache__/

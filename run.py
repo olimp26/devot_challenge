@@ -1,8 +1,14 @@
+import logging
+from app.logger import Logger, LogLevels
 import os
 from dotenv import load_dotenv
 import uvicorn
 
 load_dotenv()
+
+Logger.configure(os.getenv("LOG_LEVEL", LogLevels.INFO))
+
+os.makedirs("data", exist_ok=True)
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
