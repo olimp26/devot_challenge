@@ -3,7 +3,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 from app.core.config import get_settings
-from app.logger.logger import Logger
+from app.core.logger import Logger
 
 load_dotenv()
 

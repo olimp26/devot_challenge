@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_current_user
+from app.core.exceptions import AuthExceptions, UserExceptions
 from app.core.security import create_access_token
 from app.crud.user import authenticate_user, create_user, get_user_by_email
 from app.db.session import get_db
@@ -24,11 +25,7 @@ def login_for_access_token(
 
     user = authenticate_user(db, email, password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthExceptions.invalid_credentials()
 
     access_token = create_access_token(subject=user.email)
     return {"access_token": access_token, "token_type": "bearer"}
@@ -38,10 +35,7 @@ def login_for_access_token(
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(db, user_in.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+        raise UserExceptions.email_already_registered()
     user = create_user(db, user_in)
     return user
 

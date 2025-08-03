@@ -8,6 +8,7 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 
 from app.core.config import get_settings
+from app.core.exceptions import AuthExceptions
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -37,24 +38,17 @@ def create_access_token(subject: Union[str, Any], expires_delta: timedelta = Non
     return encoded_jwt
 
 
-def verify_token(token: str) -> Union[str, None]:
+def verify_token(token: str) -> str:
     try:
         payload = jwt.decode(token, settings.secret_key,
                              algorithms=[settings.jwt_algorithm])
         email = payload.get("sub")
         if email is None:
-            return None
+            raise AuthExceptions.invalid_token()
         return email
     except InvalidTokenError:
-        return None
+        raise AuthExceptions.invalid_token()
 
 
 def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
-    email = verify_token(token)
-    if email is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return email
+    return verify_token(token)

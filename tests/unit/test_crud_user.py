@@ -1,9 +1,10 @@
-import pytest
 from datetime import datetime
 
-from app.crud.user import get_user_by_email, create_user
-from app.schemas.user import UserCreate
+import pytest
+
+from app.crud.user import create_user, get_user_by_email
 from app.models.user import User
+from app.schemas.user import UserCreate
 
 
 class TestUserCRUD:

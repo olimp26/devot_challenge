@@ -55,3 +55,14 @@ def sample_user_data():
         "password": "testpassword123",
         "full_name": "Test User"
     }
+
+
+@pytest.fixture
+def sample_user(db_session, sample_user_data):
+    """Create a sample user in the database for testing."""
+    from app.crud.user import create_user
+    from app.schemas.user import UserCreate
+
+    user_create = UserCreate(**sample_user_data)
+    user = create_user(db_session, user_create)
+    return user
